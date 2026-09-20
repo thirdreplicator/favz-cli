@@ -4,7 +4,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { summarize, validSummary, score, TITLES } = require('../lib/score');
+const { summarize, validSummary, view, score, TITLES, MAX_LEVEL } = require('../lib/score');
 const { scan } = require('../lib/scan');
 
 const KNOWN = {
@@ -18,7 +18,7 @@ const KNOWN = {
 test('only public names are kept; the rest become counts', () => {
   const summary = summarize(['mcp:npm:@playwright/mcp', 'mcp:url:ctx.example.com', 'skill:my-private-thing',
     'agent:acme-deploy', 'mcp:unknown:', 'mcp:redacted'], KNOWN);
-  assert.deepStrictEqual(summary, { tools: ['mcp:npm:@playwright/mcp', 'mcp:npm:ctx'], other: { skill: 1, agent: 1, mcp: 2 } });
+  assert.deepStrictEqual(summary, { tools: ['mcp:npm:@playwright/mcp', 'mcp:npm:ctx'], other: { skill: 1, agent: 1, mcp: 2 }, projects: 0 });
   assert.ok(!JSON.stringify(summary).includes('acme'));
 });
 
@@ -32,9 +32,9 @@ test('the server refuses a summary with names it does not publish', () => {
   assert.ok(!validSummary(null, KNOWN));
 });
 
-test('an empty setup is a level 1 Wanderer', () => {
+test('an empty setup is a level 1 Rogue', () => {
   const card = score({ tools: [], other: {} }, KNOWN);
-  assert.deepStrictEqual([card.level, card.class, card.title, card.suggestions], [1, 'Wanderer', 'Novice', []]);
+  assert.deepStrictEqual([card.level, card.class, card.title, card.suggestions], [1, 'Rogue', 'Novice', []]);
 });
 
 test('class, level and suggestions for a small front-end setup', () => {
@@ -47,10 +47,19 @@ test('class, level and suggestions for a small front-end setup', () => {
   assert.deepStrictEqual(card.suggestions[0], { tool: 'mcp:npm:ctx', with: 'mcp:npm:@playwright/mcp', both: 30, of: 100 });
 });
 
-test('the level never leaves 1 to 20', () => {
-  const card = score({ tools: KNOWN.names, other: { skill: 9000, agent: 9000, command: 9000, hook: 9000, plugin: 9000, mcp: 9000 } }, KNOWN);
-  assert.ok(card.level >= 1 && card.level <= 20);
-  assert.strictEqual(card.title, TITLES[Math.ceil(card.level / 4) - 1]);
+test('the level never leaves 1 to 30, and months on Favz raise it', () => {
+  const full = { tools: KNOWN.names, other: { skill: 9000, agent: 9000, command: 9000, hook: 9000, plugin: 9000, mcp: 9000 } };
+  const card = score(full, KNOWN, 500);
+  assert.ok(card.level >= 1 && card.level <= MAX_LEVEL);
+  assert.strictEqual(card.title, TITLES[Math.ceil(card.level / 6) - 1]);
+  assert.strictEqual(score(full, KNOWN, 4).level, score(full, KNOWN).level + 4);
+});
+
+test('the local view carries no class or level', () => {
+  const local = view({ tools: ['mcp:npm:@playwright/mcp'], other: { hook: 2 } }, KNOWN);
+  assert.deepStrictEqual(['level', 'title', 'class'].filter((k) => k in local), []);
+  assert.strictEqual(local.total, 3);
+  assert.ok(Array.isArray(local.suggestions));
 });
 
 test('scan reads names from a home folder and nothing else', () => {
@@ -65,8 +74,27 @@ test('scan reads names from a home folder and nothing else', () => {
     mcpServers: { a: { command: 'npx', args: ['-y', 'pkg-a'], env: { K: fake } } },
     projects: { '/work': { mcpServers: { b: { url: 'https://b.example.com/x?k=' + fake } } }, '/else': { mcpServers: { c: { command: 'npx', args: ['pkg-c'] } } } },
   }));
-  const found = scan({ home, cwd: '/work' });
+  const found = scan({ home, paths: ['/work'] });
   assert.deepStrictEqual(found.names, ['agent:redacted', 'mcp:npm:pkg-a', 'mcp:url:b.example.com', 'skill:my-skill']);
   assert.ok(!JSON.stringify(found).includes(fake));
   fs.rmSync(home, { recursive: true });
+});
+
+test('a folder of projects is scanned one level deep, and only the count of projects is kept', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'favz-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'favz-projects-'));
+  for (const [name, pkg] of [['alpha', 'pkg-a'], ['beta', 'pkg-b']]) {
+    fs.mkdirSync(path.join(root, name));
+    fs.writeFileSync(path.join(root, name, '.mcp.json'), JSON.stringify({ mcpServers: { x: { command: 'npx', args: [pkg] } } }));
+  }
+  fs.mkdirSync(path.join(root, 'plain')); // no agent config, so not a project
+  fs.mkdirSync(path.join(root, 'alpha', 'deep', '.claude', 'skills', 'hidden'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'alpha', 'deep', '.claude', 'skills', 'hidden', 'SKILL.md'), 'body'); // two levels down, so not read
+  const found = scan({ home, paths: [root] });
+  assert.deepStrictEqual(found.names, ['mcp:npm:pkg-a', 'mcp:npm:pkg-b']);
+  assert.strictEqual(found.projects, 2);
+  const summary = summarize(found.names, KNOWN, found.projects);
+  assert.ok(!JSON.stringify(summary).includes('alpha') && summary.projects === 2);
+  assert.ok(validSummary(summary, KNOWN) && !validSummary({ ...summary, projects: -1 }, KNOWN) && !validSummary({ ...summary, projects: 'x' }, KNOWN));
+  fs.rmSync(home, { recursive: true }); fs.rmSync(root, { recursive: true });
 });

@@ -2,8 +2,8 @@
 // Profile pages for the `favz` command. Standard library only. Runs behind Caddy on 127.0.0.1:8082.
 //
 // It accepts only tool names Favz already publishes, plus counts. It works the card out again
-// itself, so a sent level is never trusted. It stores the summary, two dates, and the day each
-// tool was first seen. It keeps no IP addresses and writes no request log.
+// itself, so a sent level is never trusted. It stores the summary, two dates, the day each tool
+// was first seen, and one line of history per day: level, class and counts. It keeps no IP addresses and writes no request log.
 
 const crypto = require('crypto');
 const fs = require('fs');
@@ -20,6 +20,7 @@ const ID = /^[A-Za-z0-9_-]{12}$/;
 const MAX_BODY = 64 * 1024;
 const MAX_PROFILES = 50000;
 const MAX_NEW_PER_HOUR = 600;
+const MAX_HISTORY = 1000; // one line per day, so about three years
 
 let known = null, knownTime = 0;
 function loadKnown() {
@@ -49,22 +50,32 @@ function roomForNew() {
   return ++windowCount <= MAX_NEW_PER_HOUR && fs.readdirSync(STORE).length < MAX_PROFILES;
 }
 
+// Months on Favz after the first one. It comes from the server's own dates, so it cannot be sent.
+function monthsActive(history) {
+  return Math.max(0, new Set(history.map((h) => h.day.slice(0, 7))).size - 1);
+}
+
 function save(body) {
   if (!validSummary(body.summary, loadKnown())) return [400, { error: 'summary refused' }];
-  const summary = { tools: body.summary.tools, other: body.summary.other };
+  const summary = { tools: body.summary.tools, other: body.summary.other, projects: body.summary.projects || 0 };
   let id = body.id, token = body.token, profile = readProfile(id);
   if (!owns(profile, token)) {
     if (!roomForNew()) return [429, { error: 'try again later' }];
     id = crypto.randomBytes(9).toString('base64url');
     token = crypto.randomBytes(32).toString('hex');
-    profile = { token_hash: hash(token), created: today(), first_seen: {} };
+    profile = { token_hash: hash(token), created: today(), first_seen: {}, history: [] };
   }
   // The day this server first saw each tool. The sender cannot set it.
   const firstSeen = {};
   for (const tool of summary.tools) firstSeen[tool] = profile.first_seen[tool] || today();
-  Object.assign(profile, { updated: today(), summary, first_seen: firstSeen });
+  // One line per day. A second run on the same day replaces that day's line.
+  const earlier = (profile.history || []).filter((h) => h.day !== today());
+  const card = score(summary, loadKnown(), monthsActive(earlier.concat({ day: today() })));
+  const line = { day: today(), level: card.level, class: card.class, title: card.title, total: card.total, count: card.count, projects: summary.projects };
+  const history = earlier.concat(line).slice(-MAX_HISTORY);
+  Object.assign(profile, { updated: today(), summary, first_seen: firstSeen, history });
   fs.writeFileSync(fileOf(id), JSON.stringify(profile), { mode: 0o600 });
-  return [200, { id, token, url: `${SITE}/p/${id}` }];
+  return [200, { id, token, url: `${SITE}/p/${id}`, card, before: earlier[earlier.length - 1] || null, history }];
 }
 
 function remove(body) {
@@ -78,7 +89,8 @@ function page(profile) {
   const current = loadKnown();
   const names = new Set(current.names);
   const summary = { tools: profile.summary.tools.filter((t) => names.has(t)), other: profile.summary.other };
-  const card = score(summary, current);
+  const history = profile.history || [];
+  const card = score(summary, current, monthsActive(history));
   const heading = `Level ${card.level} ${card.class} · ${card.title}`;
   const counts = Object.entries(card.count).filter(([, n]) => n > 0).map(([k, n]) => `${n} ${esc(k)}`).join(' · ');
   const rows = summary.tools.map((t) => `<tr><td><code>${esc(short(t))}</code></td><td>${esc(t.split(':')[0])}</td>` +
@@ -87,7 +99,9 @@ function page(profile) {
     `<p>${card.total} tools set up. The median public setup has ${esc(card.median_tools)}.<br>${counts}</p>`,
     card.rarest ? `<p>Rarest: <code>${esc(short(card.rarest.tool))}</code>, in ${card.rarest.repos_now} of ${card.sample_repos} sampled setups.</p>` : '',
     card.rising.length ? `<p>Rising fast in the sample: ${card.rising.map((t) => `<code>${esc(short(t))}</code>`).join(', ')}.</p>` : '',
-    rows ? `<table><thead><tr><th>Public tool</th><th>Kind</th><th>First seen here</th></tr></thead><tbody>${rows}</tbody></table>` : '',
+    history.length ? `<h2>Timeline</h2><table><thead><tr><th>Day</th><th>Level</th><th>Class</th><th>Tools</th><th>Projects</th></tr></thead><tbody>${
+      history.slice().reverse().map((h) => `<tr><td>${esc(h.day)}</td><td>${esc(h.level)}</td><td>${esc(h.class)} · ${esc(h.title)}</td><td>${esc(h.total)}</td><td>${esc(h.projects)}</td></tr>`).join('')}</tbody></table>` : '',
+    rows ? `<h2>Public tools</h2><table><thead><tr><th>Public tool</th><th>Kind</th><th>First seen here</th></tr></thead><tbody>${rows}</tbody></table>` : '',
   ].join('\n');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
@@ -105,8 +119,8 @@ pre{border:1px solid var(--line);border-radius:6px;padding:12px;font-size:15px}<
 ${lines}
 <h2>Get yours</h2><pre>${esc(COMMAND)}</pre>
 <p class="small">The level is a game, not a measurement. It comes from how many kinds of tool are set up, how many were
-made by hand, how rare the public ones are, and how many are rising in <a href="/">our sample of ${card.sample_repos} public setups</a>.
-This page holds public tool names and counts only. Updated ${esc(profile.updated)}.</p>
+made by hand, how rare the public ones are, how many are rising, and how many months the timeline covers, against <a href="/">our sample of ${card.sample_repos} public setups</a>.
+This page holds public tool names and counts only. Each run of the command adds a line to the timeline. Updated ${esc(profile.updated)}.</p>
 </main></body></html>`;
 }
 

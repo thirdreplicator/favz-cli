@@ -1,6 +1,6 @@
 {
   "name": "favz-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "See how your AI agent setup compares with public ones. Scans locally, sends nothing unless you say yes, never installs anything.",
   "bin": {
     "favz": "bin/favz.js"
