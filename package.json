@@ -1,0 +1,36 @@
+{
+  "name": "favz-cli",
+  "version": "0.1.0",
+  "description": "See how your AI agent setup compares with public ones. Scans locally, sends nothing unless you say yes, never installs anything.",
+  "bin": {
+    "favz": "bin/favz.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "claude-code",
+    "ai-agents",
+    "skills",
+    "cursor"
+  ],
+  "homepage": "https://favz.co/",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thirdreplicator/favz-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thirdreplicator/favz-cli/issues"
+  }
+}

@@ -1,0 +1,470 @@
+{
+ "servers": [
+  [
+   {
+    "command": "npx",
+    "args": [
+     "-y",
+     "@playwright/mcp@latest"
+    ]
+   },
+   "npm:@playwright/mcp"
+  ],
+  [
+   {
+    "command": "npx",
+    "args": [
+     "-y",
+     "@upstash/context7-mcp",
+     "--api-key",
+     "ghp_a1B2c3D4e5a1B2c3D4e5a1B2c3D4e5"
+    ]
+   },
+   "npm:@upstash/context7-mcp"
+  ],
+  [
+   {
+    "command": "npx -y chrome-devtools-mcp@1.2.3"
+   },
+   "npm:chrome-devtools-mcp"
+  ],
+  [
+   {
+    "command": "API_KEY=abc123 npx some-server"
+   },
+   "npm:some-server"
+  ],
+  [
+   {
+    "command": "cmd",
+    "args": [
+     "/c",
+     "npx",
+     "-y",
+     "shadcn@latest",
+     "mcp"
+    ]
+   },
+   "npm:shadcn"
+  ],
+  [
+   {
+    "command": "cmd",
+    "args": [
+     "/c"
+    ]
+   },
+   "unknown:"
+  ],
+  [
+   {
+    "command": "npx",
+    "args": [
+     "mcp-remote",
+     "https://mcp.example.com/sse?key=ghp_a1B2c3D4e5a1B2c3D4e5a1B2c3D4e5"
+    ]
+   },
+   "url:mcp.example.com"
+  ],
+  [
+   {
+    "command": "npx",
+    "args": [
+     "mcp-remote"
+    ]
+   },
+   "unknown:"
+  ],
+  [
+   {
+    "command": "npx",
+    "args": [
+     "tsx",
+     "src/server.ts"
+    ]
+   },
+   "local:server.ts"
+  ],
+  [
+   {
+    "command": "npx",
+    "args": [
+     "--package",
+     "@scope/pkg@2",
+     "run-it"
+    ]
+   },
+   "npm:@scope/pkg"
+  ],
+  [
+   {
+    "command": "pnpm",
+    "args": [
+     "dlx",
+     "some-mcp"
+    ]
+   },
+   "npm:some-mcp"
+  ],
+  [
+   {
+    "command": "npm",
+    "args": [
+     "run",
+     "mcp"
+    ]
+   },
+   "cmd:npm"
+  ],
+  [
+   {
+    "command": "npx",
+    "args": [
+     "-y"
+    ]
+   },
+   "unknown:"
+  ],
+  [
+   {
+    "command": "uvx",
+    "args": [
+     "mcp-server-fetch"
+    ]
+   },
+   "pypi:mcp-server-fetch"
+  ],
+  [
+   {
+    "command": "uvx",
+    "args": [
+     "--from",
+     "git+https://github.com/a/b",
+     "serve"
+    ]
+   },
+   "unknown:"
+  ],
+  [
+   {
+    "command": "uvx",
+    "args": [
+     "thing[extra]==1.0"
+    ]
+   },
+   "pypi:thing"
+  ],
+  [
+   {
+    "command": "uv",
+    "args": [
+     "run",
+     "python",
+     "server.py"
+    ]
+   },
+   "local:server.py"
+  ],
+  [
+   {
+    "command": "uv",
+    "args": [
+     "run",
+     "./tools/server.py"
+    ]
+   },
+   "local:server.py"
+  ],
+  [
+   {
+    "command": "uv",
+    "args": [
+     "tool",
+     "run",
+     "pkg"
+    ]
+   },
+   "pypi:pkg"
+  ],
+  [
+   {
+    "command": "docker",
+    "args": [
+     "run",
+     "-i",
+     "--rm",
+     "-e",
+     "TOKEN=ghp_a1B2c3D4e5a1B2c3D4e5a1B2c3D4e5",
+     "ghcr.io/github/github-mcp-server:latest"
+    ]
+   },
+   "docker:ghcr.io/github/github-mcp-server"
+  ],
+  [
+   {
+    "command": "docker",
+    "args": [
+     "run",
+     "host:5000/image"
+    ]
+   },
+   "unknown:"
+  ],
+  [
+   {
+    "command": "docker",
+    "args": [
+     "run",
+     "-i"
+    ]
+   },
+   "unknown:"
+  ],
+  [
+   {
+    "command": "python3",
+    "args": [
+     "-m",
+     "my_module.server"
+    ]
+   },
+   "pymod:my_module.server"
+  ],
+  [
+   {
+    "command": "node",
+    "args": [
+     "/Users/someone/code/build/index.js"
+    ]
+   },
+   "local:index.js"
+  ],
+  [
+   {
+    "command": "C:\\Program Files\\nodejs\\node.exe",
+    "args": [
+     "C:\\code\\server.js"
+    ]
+   },
+   "cmd:program"
+  ],
+  [
+   {
+    "command": "/usr/local/bin/my-server",
+    "args": [
+     "--key",
+     "ghp_a1B2c3D4e5a1B2c3D4e5a1B2c3D4e5"
+    ]
+   },
+   "cmd:my-server"
+  ],
+  [
+   {
+    "command": "node",
+    "args": [
+     "server.js; rm -rf /"
+    ]
+   },
+   "local:inline"
+  ],
+  [
+   {
+    "command": "npx",
+    "args": [
+     "bad name$(x)"
+    ]
+   },
+   "unknown:"
+  ],
+  [
+   {
+    "url": "https://WWW.Mcp.Supabase.com/mcp?token=ghp_a1B2c3D4e5a1B2c3D4e5a1B2c3D4e5"
+   },
+   "url:mcp.supabase.com"
+  ],
+  [
+   {
+    "serverUrl": "https://api.githubcopilot.com/mcp/"
+   },
+   "url:api.githubcopilot.com"
+  ],
+  [
+   {
+    "url": "not a url"
+   },
+   "unknown:"
+  ],
+  [
+   {
+    "url": "http://localhost:3000/mcp"
+   },
+   "url:localhost"
+  ],
+  [
+   {
+    "command": ""
+   },
+   "unknown:"
+  ],
+  [
+   {
+    "command": 5
+   },
+   "unknown:"
+  ],
+  [
+   {
+    "type": "stdio"
+   },
+   "unknown:"
+  ],
+  [
+   "a string",
+   "unknown:"
+  ],
+  [
+   null,
+   "unknown:"
+  ]
+ ],
+ "hooks": [
+  [
+   {
+    "PreToolUse": [
+     {
+      "matcher": "Bash",
+      "hooks": [
+       {
+        "type": "command",
+        "command": "rtk hook --x"
+       }
+      ]
+     }
+    ]
+   },
+   [
+    "hook:PreToolUse:rtk"
+   ]
+  ],
+  [
+   {
+    "Stop": [
+     {
+      "hooks": [
+       {
+        "command": "TOKEN=ghp_a1B2c3D4e5a1B2c3D4e5a1B2c3D4e5 /opt/bin/notify.sh done"
+       }
+      ]
+     }
+    ]
+   },
+   [
+    "hook:Stop:notify.sh"
+   ]
+  ],
+  [
+   {
+    "Stop": [
+     {
+      "hooks": [
+       {
+        "command": "X=$(date) echo hi"
+       }
+      ]
+     }
+    ]
+   },
+   [
+    "hook:Stop:inline"
+   ]
+  ],
+  [
+   {
+    "PostToolUse": [
+     {
+      "hooks": [
+       {
+        "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/fmt.sh"
+       }
+      ]
+     }
+    ]
+   },
+   [
+    "hook:PostToolUse:fmt.sh"
+   ]
+  ],
+  [
+   {
+    "Bad Event!": [
+     {
+      "hooks": [
+       {
+        "command": "ls"
+       }
+      ]
+     }
+    ]
+   },
+   []
+  ],
+  [
+   {
+    "SessionStart": "nope",
+    "Notification": [
+     {
+      "hooks": "nope"
+     },
+     7
+    ]
+   },
+   []
+  ]
+ ],
+ "secrets": [
+  [
+   "mcp:npm:@playwright/mcp",
+   false
+  ],
+  [
+   "hook:UserPromptSubmit:inline",
+   false
+  ],
+  [
+   "skill:design-taste-frontend",
+   false
+  ],
+  [
+   "mcp:npm:ghp_a1B2c3D4e5a1B2c3D4e5a1B2c3D4e5",
+   true
+  ],
+  [
+   "mcp:cmd:sk-x9Y8z7W6v5U4t3S2r1Q0",
+   true
+  ],
+  [
+   "skill:a3f9c2e1b4d5a6f7c8e9d0b1a2c3e4f5",
+   true
+  ],
+  [
+   "mcp:local:token=abc",
+   true
+  ],
+  [
+   "mcp:pypi:k8Jq2LmZ9xPw4RtY7vNc",
+   true
+  ],
+  [
+   "agent:code-reviewer",
+   false
+  ],
+  [
+   "command:internationalization-helper",
+   false
+  ],
+  [
+   "mcp:url:learn.microsoft.com",
+   false
+  ]
+ ]
+}
