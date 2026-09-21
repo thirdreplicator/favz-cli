@@ -12,6 +12,10 @@ The data comes from [Favz](https://favz.co/), a random sample of 2,039 public Gi
     npx favz-cli               # the current folder, plus your own setup
     npx favz-cli ~/Projects    # a folder of projects: it and the folders directly inside it
 
+With a folder of projects it also shows stats across them and for each one: how many tools, which
+tools make up your common stack, which projects lack a tool most of your others have, and the rare
+ones. Project names appear on your screen and in `--json` only. They are never sent.
+
 ## What it reads
 
 - `~/.claude.json`, `~/.claude/settings.json`, `~/.cursor/mcp.json`

@@ -8,13 +8,15 @@ const readline = require('readline');
 const { scan } = require('../lib/scan');
 const { summarize, view } = require('../lib/score');
 const { viewText, ratingText, summaryText, COMMAND } = require('../lib/card');
+const { projectStats, projectsText } = require('../lib/projects');
 
 const BASE = (process.env.FAVZ_URL || 'https://favz.co').replace(/\/+$/, '');
 const STATE = path.join(os.homedir(), '.config', 'favz', 'profile.json');
 const HELP = `favz: see how your AI agent setup compares with public ones, and get a class and a level.
 
   ${COMMAND}               look at the current folder and your own setup
-  ${COMMAND} ~/Projects    look at a folder of projects (it and the folders directly inside it)
+  ${COMMAND} ~/Projects    look at a folder of projects (it and the folders directly inside it),
+                           with stats across them and for each one
   ${COMMAND} --publish     send the summary without the question (add --yes to skip the prompt)
   ${COMMAND} --json        print what was found as JSON. Sends nothing.
   ${COMMAND} --delete      delete your profile and its history
@@ -62,10 +64,13 @@ async function main() {
   const found = scan(paths.length ? { paths } : {});
   const summary = summarize(found.names, known, found.projects);
   const local = view(summary, known);
-  if (flags.has('--json')) return console.log(JSON.stringify({ view: local, summary }, null, 2));
+  const byProject = projectStats(found, known);
+  if (flags.has('--json')) return console.log(JSON.stringify({ view: local, projects: byProject, summary }, null, 2));
 
   console.log(`\n  Read ${found.files.length} config files in ${found.projects} project folders and your own setup. Found ${found.names.length} tool names.`);
   console.log(viewText(local));
+  const perProjectText = projectsText(byProject);
+  if (perProjectText) console.log(perProjectText);
 
   const canAsk = process.stdin.isTTY && process.stdout.isTTY;
   console.log('  Your class and level live on your Favz profile, at a private link. To get them, this is');
