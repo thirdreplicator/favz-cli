@@ -60,6 +60,11 @@ here must match them. `test/make_vectors.py` needs the private data pipeline and
 reference. `server/profile_server.js` is the service behind the profile pages. `skill/SKILL.md` is
 the agent skill served at https://favz.co/skill.md.
 
+## Releases
+
+Pushing a tag such as `v0.2.1` runs the tests and publishes to npm from GitHub Actions. It uses
+npm trusted publishing, so no npm token is stored. The tag must match `package.json`.
+
 ## Licence
 
 MIT

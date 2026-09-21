@@ -1,0 +1,26 @@
+# Publishes to npm when a version tag is pushed, such as v0.2.1.
+# It uses npm "trusted publishing": GitHub proves to npm which repo and workflow is running,
+# so no npm token is stored anywhere. The tag must match the version in package.json.
+name: publish
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - name: The tag must match package.json
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - run: npm test
+      - run: npm publish --access public
