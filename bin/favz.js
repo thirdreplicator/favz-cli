@@ -7,11 +7,13 @@ const path = require('path');
 const readline = require('readline');
 const { scan } = require('../lib/scan');
 const { summarize, view } = require('../lib/score');
-const { viewText, ratingText, summaryText, COMMAND } = require('../lib/card');
+const { likeYou, sinceLast, remember } = require('../lib/discover');
+const { viewText, likeYouText, ratingText, summaryText, COMMAND } = require('../lib/card');
 const { projectStats, projectsText } = require('../lib/projects');
 
 const BASE = (process.env.FAVZ_URL || 'https://favz.co').replace(/\/+$/, '');
 const STATE = path.join(os.homedir(), '.config', 'favz', 'profile.json');
+const SEEN = path.join(os.homedir(), '.config', 'favz', 'seen.json'); // what the last run showed; never sent
 const HELP = `favz: see how your AI agent setup compares with public ones, and get a class and a level.
 
   ${COMMAND}               look at the current folder and your own setup
@@ -26,6 +28,8 @@ Counts and suggestions are worked out on your machine and nothing is sent for th
 Your class and level live on your Favz profile. To get them you agree to send a summary: tool
 names Favz already publishes, and counts of everything else. It is shown to you first.
 Run it again later and the profile keeps a timeline of how your setup grows.
+"People like you use" comes from Favz's census of public repos. The command keeps what it last
+showed you in ~/.config/favz/seen.json, on this machine only, so the next run can say what changed.
 
 It reads Claude Code, Cursor and VS Code agent config and keeps tool names only. It never reads
 env values, headers or arguments, and it never installs anything.
@@ -43,8 +47,17 @@ function ask(question) {
   return new Promise((resolve) => rl.question(question, (answer) => { rl.close(); resolve(answer.trim().toLowerCase()); }));
 }
 
-function readState() {
-  try { return JSON.parse(fs.readFileSync(STATE, 'utf8')); } catch (e) { return null; }
+function readJson(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return null; }
+}
+
+const readState = () => readJson(STATE);
+
+function writeSeen(seen) {
+  try {
+    fs.mkdirSync(path.dirname(SEEN), { recursive: true });
+    fs.writeFileSync(SEEN, JSON.stringify(seen));
+  } catch (e) { /* only a convenience */ }
 }
 
 async function main() {
@@ -65,10 +78,17 @@ async function main() {
   const summary = summarize(found.names, known, found.projects);
   const local = view(summary, known);
   const byProject = projectStats(found, known);
-  if (flags.has('--json')) return console.log(JSON.stringify({ view: local, projects: byProject, summary }, null, 2));
+  const picks = likeYou(found.names, known);
+  local.likeYou = Boolean(known.census);
+  if (flags.has('--json')) return console.log(JSON.stringify({ view: local, likeYou: picks, projects: byProject, summary }, null, 2));
 
   console.log(`\n  Read ${found.files.length} config files in ${found.projects} project folders and your own setup. Found ${found.names.length} tool names.`);
   console.log(viewText(local));
+  if (known.census) {
+    const since = sinceLast(picks, known, readJson(SEEN));
+    console.log(likeYouText(picks, since, known.census.repos));
+    if (!since || !since.sameCensus) writeSeen(remember(picks, known, new Date().toISOString().slice(0, 10)));
+  }
   const perProjectText = projectsText(byProject);
   if (perProjectText) console.log(perProjectText);
 
