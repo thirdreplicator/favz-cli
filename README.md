@@ -39,7 +39,8 @@ summary. The command shows it first and asks. It holds:
 - the number of project folders that had agent config. No folder names, no paths.
 
 The server refuses any name it does not already publish, and works the level out itself. It keeps
-no IP addresses and no request log. `npx favz-cli --delete` removes the profile and its timeline.
+no IP addresses and no request log. Traffic passes through Cloudflare, which sees the caller's IP
+address the way any network carrier does; Favz does not keep it. `npx favz-cli --delete` removes the profile and its timeline.
 
 It never installs anything.
 
