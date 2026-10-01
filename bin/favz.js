@@ -10,10 +10,12 @@ const { summarize, view } = require('../lib/score');
 const { likeYou, sinceLast, remember } = require('../lib/discover');
 const { viewText, likeYouText, ratingText, summaryText, COMMAND } = require('../lib/card');
 const { projectStats, projectsText } = require('../lib/projects');
+const follow = require('../lib/follow');
 
 const BASE = (process.env.FAVZ_URL || 'https://favz.co').replace(/\/+$/, '');
 const STATE = path.join(os.homedir(), '.config', 'favz', 'profile.json');
 const SEEN = path.join(os.homedir(), '.config', 'favz', 'seen.json'); // what the last run showed; never sent
+const FOLLOWS = path.join(os.homedir(), '.config', 'favz', 'follows.json'); // followed repos; never sent
 const HELP = `favz: see how your AI agent setup compares with public ones, and get a class and a level.
 
   ${COMMAND}               look at the current folder and your own setup
@@ -22,6 +24,9 @@ const HELP = `favz: see how your AI agent setup compares with public ones, and g
   ${COMMAND} --publish     send the summary without the question (add --yes to skip the prompt)
   ${COMMAND} --json        print what was found as JSON. Sends nothing.
   ${COMMAND} --delete      delete your profile and its history
+  ${COMMAND} follow owner/name     follow a big repo's agent setup (1,000 stars or more)
+  ${COMMAND} follow                what the repos you follow added or removed since you last looked
+  ${COMMAND} unfollow owner/name
   ${COMMAND} --help
 
 Counts and suggestions are worked out on your machine and nothing is sent for them.
@@ -30,6 +35,9 @@ names Favz already publishes, and counts of everything else. It is shown to you 
 Run it again later and the profile keeps a timeline of how your setup grows.
 "People like you use" comes from Favz's census of public repos. The command keeps what it last
 showed you in ~/.config/favz/seen.json, on this machine only, so the next run can say what changed.
+
+Following keeps the list in ~/.config/favz/follows.json, on this machine. Checking fetches each
+repo's public page data from favz.co, the same file anyone can open at favz.co/repos/.
 
 It reads Claude Code, Cursor and VS Code agent config and keeps tool names only. It never reads
 env values, headers or arguments, and it never installs anything.
@@ -60,6 +68,67 @@ function writeSeen(seen) {
   } catch (e) { /* only a convenience */ }
 }
 
+async function repoData(repo) {
+  const response = await fetch(BASE + follow.jsonPath(repo), { signal: AbortSignal.timeout(15000) });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`${follow.jsonPath(repo)} answered ${response.status}`);
+  return response.json();
+}
+
+// favz follow [repo] and favz unfollow repo. Returns false when the arguments are not one of these.
+async function follows(args) {
+  const [verb, input] = args;
+  if (verb !== 'follow' && verb !== 'unfollow') return false;
+  const saved = readJson(FOLLOWS) || {};
+  const save = () => {
+    fs.mkdirSync(path.dirname(FOLLOWS), { recursive: true });
+    fs.writeFileSync(FOLLOWS, JSON.stringify(saved, null, 1));
+  };
+  const today = new Date().toISOString().slice(0, 10);
+  if (input !== undefined) {
+    const repo = follow.repoName(input);
+    if (!repo) throw new Error(`"${input}" is not a GitHub repo. Use owner/name.`);
+    const key = repo.toLowerCase();
+    if (verb === 'unfollow') {
+      if (!(key in saved)) return console.log(`  You don't follow ${repo}.`), true;
+      delete saved[key];
+      save();
+      return console.log(`  Stopped following ${repo}.`), true;
+    }
+    const data = await repoData(repo);
+    if (!data) {
+      console.log(`  Favz has no page for ${repo}. Only public repos with 1,000 stars or more and agent config`);
+      console.log(`  that the census has read have one. See ${BASE}/repos/`);
+      return true;
+    }
+    const snap = follow.snapshot(data, today);
+    console.log(`\n  Following ${snap.repo}.\n`);
+    console.log(follow.followText(snap, null) + '\n');
+    console.log(`  Run ${COMMAND} follow to see what changed. Your list stays on this machine.`);
+    saved[key] = snap;
+    save();
+    return true;
+  }
+  if (verb === 'unfollow') throw new Error(`say which repo: ${COMMAND} unfollow owner/name`);
+  const repos = Object.keys(saved).sort();
+  if (!repos.length) return console.log(`  You follow no repos yet. Try: ${COMMAND} follow owner/name. Big repos: ${BASE}/repos/`), true;
+  console.log('');
+  for (const key of repos) {
+    const data = await repoData(saved[key].repo);
+    if (!data) {
+      console.log(`  ${saved[key].repo}: no longer on Favz. Its owner may have taken it off. ${COMMAND} unfollow ${saved[key].repo}\n`);
+      continue;
+    }
+    const snap = follow.snapshot(data, today);
+    const change = follow.diff(saved[key], snap);
+    console.log(follow.followText(snap, change) + '\n');
+    // Keep the old day when nothing changed, so "since" means since the last change you saw.
+    saved[key] = change && !change.added.length && !change.removed.length ? { ...snap, checked: saved[key].checked } : snap;
+  }
+  save();
+  return true;
+}
+
 async function main() {
   const flags = new Set(process.argv.slice(2));
   if (flags.has('--help') || flags.has('-h')) return console.log(HELP);
@@ -71,6 +140,8 @@ async function main() {
     fs.rmSync(STATE);
     return console.log('Profile deleted.');
   }
+
+  if (await follows(process.argv.slice(2).filter((a) => !a.startsWith('-')))) return;
 
   const paths = process.argv.slice(2).filter((a) => !a.startsWith('-'));
   const known = await request('/known.json');
