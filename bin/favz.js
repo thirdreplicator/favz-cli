@@ -24,7 +24,7 @@ const HELP = `favz: see how your AI agent setup compares with public ones, and g
   ${COMMAND} --publish     send the summary without the question (add --yes to skip the prompt)
   ${COMMAND} --json        print what was found as JSON. Sends nothing.
   ${COMMAND} --delete      delete your profile and its history
-  ${COMMAND} follow owner/name     follow a big repo's agent setup (1,000 stars or more)
+  ${COMMAND} follow owner/name     follow a repo's agent setup (100 stars or more)
   ${COMMAND} follow                what the repos you follow added or removed since you last looked
   ${COMMAND} unfollow owner/name
   ${COMMAND} --help
@@ -97,7 +97,7 @@ async function follows(args) {
     }
     const data = await repoData(repo);
     if (!data) {
-      console.log(`  Favz has no page for ${repo}. Only public repos with 1,000 stars or more and agent config`);
+      console.log(`  Favz has no page for ${repo}. Only public repos with 100 stars or more and agent config`);
       console.log(`  that the census has read have one. See ${BASE}/repos/`);
       return true;
     }
@@ -111,7 +111,7 @@ async function follows(args) {
   }
   if (verb === 'unfollow') throw new Error(`say which repo: ${COMMAND} unfollow owner/name`);
   const repos = Object.keys(saved).sort();
-  if (!repos.length) return console.log(`  You follow no repos yet. Try: ${COMMAND} follow owner/name. Big repos: ${BASE}/repos/`), true;
+  if (!repos.length) return console.log(`  You follow no repos yet. Try: ${COMMAND} follow owner/name. Repos: ${BASE}/repos/`), true;
   console.log('');
   for (const key of repos) {
     const data = await repoData(saved[key].repo);

@@ -16,13 +16,13 @@ With a folder of projects it also shows stats across them and for each one: how 
 tools make up your common stack, which projects lack a tool most of your others have, and the rare
 ones. Project names appear on your screen and in `--json` only. They are never sent.
 
-## Follow a big repo
+## Follow a repo
 
     npx favz-cli follow owner/name     # start following; shows what it runs now
     npx favz-cli follow                # what the repos you follow added or removed since you last looked
     npx favz-cli unfollow owner/name
 
-Repos with 1,000 stars or more have a page on [favz.co/repos/](https://favz.co/repos/). The list of
+Repos with 100 stars or more have a page on [favz.co/repos/](https://favz.co/repos/). The list of
 repos you follow stays in `~/.config/favz/follows.json`, on your machine. Checking downloads each
 repo's public page data, such as `https://favz.co/repos/owner/name.json`, and sends nothing.
 
