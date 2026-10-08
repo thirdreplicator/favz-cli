@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
-const { likeYou, sinceLast, remember } = require('../lib/discover');
+const { likeYou, yoursAlone, sinceLast, remember } = require('../lib/discover');
 const { likeYouText } = require('../lib/card');
 
 // 1,000 repos. a and b are big and go together a little; c goes with a much more than chance.
@@ -40,4 +40,14 @@ test('a later run says what is new and what moved', () => {
   assert.match(text, /b: 290 → 300 repos \(\+10\)/);
   assert.match(text, /c \(new\): 40 of the 200 repos with a run it, \+10 repos in 30 days/);
   assert.match(text, /https:\/\/favz\.co\/tools\/c\.html/);
+});
+
+test('counts the tools too few public repos run to be listed', () => {
+  const known = { ...KNOWN, census: { ...KNOWN.census, min_repos: 20 } };
+  const names = ['mcp:url:a.example.com', 'mcp:npm:a', 'skill:mine', 'skill:other', 'hook:PreToolUse:bash'];
+  // the alias and its target are one tool, and hooks are not a kind the census lists
+  assert.deepStrictEqual(yoursAlone(names, known), { of: 3, alone: 2, min: 20, repos: 1000 });
+  assert.match(likeYouText([], null, 1000, yoursAlone(names, known)), /2 of your 3 skills, MCP servers and plugins are yours alone/);
+  assert.strictEqual(yoursAlone(names, KNOWN), null, 'a known.json that does not give the threshold');
+  assert.strictEqual(yoursAlone(['hook:PreToolUse:bash'], known), null);
 });

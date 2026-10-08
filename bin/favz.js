@@ -7,7 +7,7 @@ const path = require('path');
 const readline = require('readline');
 const { scan } = require('../lib/scan');
 const { summarize, view } = require('../lib/score');
-const { likeYou, sinceLast, remember } = require('../lib/discover');
+const { likeYou, yoursAlone, sinceLast, remember } = require('../lib/discover');
 const { viewText, likeYouText, ratingText, summaryText, COMMAND } = require('../lib/card');
 const { projectStats, projectsText } = require('../lib/projects');
 const follow = require('../lib/follow');
@@ -157,7 +157,7 @@ async function main() {
   console.log(viewText(local));
   if (known.census) {
     const since = sinceLast(picks, known, readJson(SEEN));
-    console.log(likeYouText(picks, since, known.census.repos));
+    console.log(likeYouText(picks, since, known.census.repos, yoursAlone(found.names, known)));
     if (!since || !since.sameCensus) writeSeen(remember(picks, known, new Date().toISOString().slice(0, 10)));
   }
   const perProjectText = projectsText(byProject);
