@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
-const { likeYou, yoursAlone, sinceLast, remember } = require('../lib/discover');
+const { likeYou, yoursAlone, mapLink, sinceLast, remember } = require('../lib/discover');
 const { likeYouText } = require('../lib/card');
 
 // 1,000 repos. a and b are big and go together a little; c goes with a much more than chance.
@@ -50,4 +50,15 @@ test('counts the tools too few public repos run to be listed', () => {
   assert.match(likeYouText([], null, 1000, yoursAlone(names, known)), /2 of your 3 skills, MCP servers and plugins are yours alone/);
   assert.strictEqual(yoursAlone(names, KNOWN), null, 'a known.json that does not give the threshold');
   assert.strictEqual(yoursAlone(['hook:PreToolUse:bash'], known), null);
+});
+
+test('the map link carries only tools the census lists, after the #', () => {
+  const link = mapLink(['mcp:npm:a', 'skill:my-private-thing', 'mcp:url:a.example.com'], KNOWN);
+  const [page, mark] = link.split('#');
+  assert.strictEqual(page, 'https://favz.co/map/');
+  assert.ok(!link.includes('private'), 'a tool the census does not list is never in the link');
+  const mine = new URLSearchParams(mark).get('mine').split(',').map(decodeURIComponent);
+  assert.ok(mine.includes('mcp:npm:a'));
+  assert.ok(mine.every((n) => KNOWN.census.names.includes(n)));
+  assert.strictEqual(mapLink(['mcp:npm:a'], { aliases: {} }), null, 'an old known.json without a census');
 });

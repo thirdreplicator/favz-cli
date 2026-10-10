@@ -7,7 +7,7 @@ const path = require('path');
 const readline = require('readline');
 const { scan } = require('../lib/scan');
 const { summarize, view } = require('../lib/score');
-const { likeYou, yoursAlone, sinceLast, remember } = require('../lib/discover');
+const { likeYou, yoursAlone, mapLink, sinceLast, remember } = require('../lib/discover');
 const { viewText, likeYouText, ratingText, summaryText, COMMAND } = require('../lib/card');
 const { projectStats, projectsText } = require('../lib/projects');
 const follow = require('../lib/follow');
@@ -23,6 +23,7 @@ const HELP = `favz: see how your AI agent setup compares with public ones, and g
                            with stats across them and for each one
   ${COMMAND} --publish     send the summary without the question (add --yes to skip the prompt)
   ${COMMAND} --json        print what was found as JSON. Sends nothing.
+  ${COMMAND} map           print a link to favz.co/map/ with your tools marked. Sends nothing.
   ${COMMAND} --delete      delete your profile and its history
   ${COMMAND} follow owner/name     follow a repo's agent setup (100 stars or more)
   ${COMMAND} follow                what the repos you follow added or removed since you last looked
@@ -143,9 +144,16 @@ async function main() {
 
   if (await follows(process.argv.slice(2).filter((a) => !a.startsWith('-')))) return;
 
-  const paths = process.argv.slice(2).filter((a) => !a.startsWith('-'));
+  const words = process.argv.slice(2).filter((a) => !a.startsWith('-'));
+  const paths = words[0] === 'map' ? words.slice(1) : words;
   const known = await request('/known.json');
   const found = scan(paths.length ? { paths } : {});
+  const onMap = mapLink(found.names, known);
+  if (words[0] === 'map') {
+    if (!onMap) throw new Error('the map needs the census, and favz.co did not send one');
+    console.log(`\n  Your tools on the map. They sit after the # in the link, which your browser does not send to\n  any server. Nothing was sent.\n\n  ${onMap}\n`);
+    return;
+  }
   const summary = summarize(found.names, known, found.projects);
   const local = view(summary, known);
   const byProject = projectStats(found, known);
@@ -158,6 +166,7 @@ async function main() {
   if (known.census) {
     const since = sinceLast(picks, known, readJson(SEEN));
     console.log(likeYouText(picks, since, known.census.repos, yoursAlone(found.names, known)));
+    console.log(`  See your tools on the map: ${COMMAND} map\n`);
     if (!since || !since.sameCensus) writeSeen(remember(picks, known, new Date().toISOString().slice(0, 10)));
   }
   const perProjectText = projectsText(byProject);
